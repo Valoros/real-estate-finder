@@ -21,7 +21,8 @@ const AppContent: React.FC = () => {
     regions: [],
     districts: [],
     finishing: [],
-    completionYear: null
+    completionYear: null,
+    developers: []
   });
 
   const resetFilters = () => {
@@ -37,7 +38,8 @@ const AppContent: React.FC = () => {
       regions: [],
       districts: [],
       finishing: [],
-      completionYear: null
+      completionYear: null,
+      developers: []
     });
   };
 

@@ -90,4 +90,5 @@ export interface FilterParams {
   finishing: Finishing[];
   completionYear: number | null;
   districts: string[];
+  developers: string[];
 } 

@@ -2,6 +2,7 @@ import React from 'react';
 import { PropertyFilter } from '../components/PropertyFilter';
 import { FilterParams } from '../types/types';
 import { mockProperties } from '../data/mockProperties';
+import { Link } from 'react-router-dom';
 
 interface HomePageProps {
   filters: FilterParams;
@@ -56,14 +57,25 @@ export const HomePage: React.FC<HomePageProps> = ({ filters, setFilters }) => {
       return false;
     }
 
+    // Фильтр по застройщикам
+    if (filters.developers.length > 0 && !filters.developers.includes(property.developer)) {
+      return false;
+    }
+
     return true;
   });
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       <header className="bg-white dark:bg-neutral-900 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Поиск новостроек</h1>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-light text-neutral-900 dark:text-neutral-100">GREENMEDIA</h1>
+          <Link 
+            to="/api" 
+            className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors"
+          >
+            API
+          </Link>
         </div>
       </header>
       
@@ -125,6 +137,9 @@ export const HomePage: React.FC<HomePageProps> = ({ filters, setFilters }) => {
                     property.finishing === 'fine' ? 'Чистовая' :
                     'Под ключ'
                   }</p>
+                  <p className="mt-2 text-teal-600 dark:text-teal-500 font-medium">
+                    {property.developer}
+                  </p>
                 </div>
               </div>
             ))}
