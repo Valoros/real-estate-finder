@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { FilterParams, Region, Direction, districts, finishingOptions, Finishing } from '../types/types';
-import { mockProperties } from '../data/mockProperties';
+import { usePropertyContext } from '../context/PropertyContext';
 
 // Приоритетные застройщики в нужном порядке
 const priorityDevelopers = ['Самолёт', 'Гранель', 'ПИК', 'А101'];
@@ -29,17 +29,18 @@ const roomOptions = [1, 2, 3, 4];
 
 interface PropertyFilterProps {
   filters: FilterParams;
-  setFilters: (filters: FilterParams) => void;
+  setFilters: (filters: Partial<FilterParams>) => void;
 }
 
 export const PropertyFilter: React.FC<PropertyFilterProps> = ({ filters, setFilters }) => {
+  const { properties } = usePropertyContext();
   const [districtSearch, setDistrictSearch] = useState('');
   const [developerSearch, setDeveloperSearch] = useState('');
   const [complexSearch, setComplexSearch] = useState('');
 
   // Получаем отфильтрованные объекты без учета застройщиков
   const filteredPropertiesWithoutDevelopers = useMemo(() => {
-    return mockProperties.filter(property => {
+    return properties.filter(property => {
       if (property.price < filters.minPrice || property.price > filters.maxPrice) return false;
       if (property.totalArea < filters.minArea || property.totalArea > filters.maxArea) return false;
       if (property.pricePerMeter < filters.minPricePerMeter || property.pricePerMeter > filters.maxPricePerMeter) return false;
@@ -52,11 +53,11 @@ export const PropertyFilter: React.FC<PropertyFilterProps> = ({ filters, setFilt
       if (filters.complexes.length > 0 && !filters.complexes.includes(property.title)) return false;
       return true;
     });
-  }, [filters, mockProperties]);
+  }, [filters, properties]);
 
   const availableDistricts = useMemo(() => {
     // Получаем все уникальные районы из существующих ЖК
-    const existingDistricts = new Set(mockProperties.map(p => p.district));
+    const existingDistricts = new Set(properties.map(p => p.district));
     
     // Фильтруем районы по выбранным регионам, наличию ЖК и поисковому запросу
     const filteredDistricts = districts.filter(d => {
@@ -67,7 +68,7 @@ export const PropertyFilter: React.FC<PropertyFilterProps> = ({ filters, setFilt
     });
 
     return filteredDistricts;
-  }, [filters.regions, districtSearch]);
+  }, [filters.regions, districtSearch, properties]);
 
   const availableDevelopers = useMemo(() => {
     const developers = new Set(filteredPropertiesWithoutDevelopers.map(p => p.developer));
@@ -82,7 +83,7 @@ export const PropertyFilter: React.FC<PropertyFilterProps> = ({ filters, setFilt
     const complexSet = new Set<string>();
     
     // Фильтруем properties без учета фильтра ЖК
-    const filteredWithoutComplex = mockProperties.filter(property => {
+    const filteredWithoutComplex = properties.filter(property => {
       if (property.price < filters.minPrice || property.price > filters.maxPrice) return false;
       if (property.totalArea < filters.minArea || property.totalArea > filters.maxArea) return false;
       if (property.pricePerMeter < filters.minPricePerMeter || property.pricePerMeter > filters.maxPricePerMeter) return false;
@@ -101,19 +102,19 @@ export const PropertyFilter: React.FC<PropertyFilterProps> = ({ filters, setFilt
     });
 
     return Array.from(complexSet).sort();
-  }, [mockProperties, filters]);
+  }, [properties, filters]);
 
   const availableFinishing = useMemo(() => {
     // Если выбран конкретный ЖК, показываем только доступные для него варианты отделки
-    if (filters.complexSearch) {
-      const complex = filteredPropertiesWithoutDevelopers.find(p => p.title === filters.complexSearch);
+    if (filters.complexes.length === 1) {
+      const complex = filteredPropertiesWithoutDevelopers.find(p => p.title === filters.complexes[0]);
       return complex ? finishingOptions.filter(option => option.id === complex.finishing) : [];
     }
     
     // Иначе показываем все варианты отделки, доступные для отфильтрованных объектов
     const finishingTypes = new Set(filteredPropertiesWithoutDevelopers.map(p => p.finishing));
     return finishingOptions.filter(option => finishingTypes.has(option.id as Finishing));
-  }, [filteredPropertiesWithoutDevelopers, filters.complexSearch]);
+  }, [filteredPropertiesWithoutDevelopers, filters.complexes]);
 
   const handleRegionClick = (region: Region) => {
     const newRegions = filters.regions.includes(region)
@@ -188,11 +189,10 @@ export const PropertyFilter: React.FC<PropertyFilterProps> = ({ filters, setFilt
                 placeholder="Поиск ЖК..."
                 className="w-full px-3 py-2 mb-2 text-sm bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400"
               />
-              {filters.complexSearch && (
+              {complexSearch && (
                 <button
                   onClick={() => {
                     setComplexSearch('');
-                    setFilters({ ...filters, complexSearch: '' });
                   }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
                 >

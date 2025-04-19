@@ -19,6 +19,12 @@ export const Header: React.FC<HeaderProps> = ({ onResetFilters }) => {
           >
             API
           </Link>
+          <Link
+            to="/admin"
+            className="px-4 py-2 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-gray-300 rounded-md transition-colors"
+          >
+            ADMIN
+          </Link>
           <button
             onClick={onResetFilters}
             className="px-4 py-2 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-gray-300 rounded-md flex items-center gap-2 transition-colors"

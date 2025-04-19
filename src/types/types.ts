@@ -25,6 +25,8 @@ export interface Property {
   propertyType: string;
   distanceFromMKAD?: number;
   highway?: string;
+  image?: string;
+  features?: string[];
 }
 
 export type Direction = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
@@ -92,4 +94,12 @@ export interface FilterParams {
   districts: string[];
   developers: string[];
   complexes: string[];
+}
+
+export interface Apartment {
+  id: number;
+  price: number;
+  area: number;
+  rooms: number;
+  complexTitle: string;
 } 

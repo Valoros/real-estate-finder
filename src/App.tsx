@@ -1,53 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HomePage } from './pages/HomePage';
 import ApiPage from './pages/ApiPage';
+import AdminPage from './pages/AdminPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { ThemeToggle } from './components/ThemeToggle';
+import { PropertyProvider, usePropertyContext } from './context/PropertyContext';
 import './App.css';
-import { FilterParams } from './types/types';
 
 const AppContent: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
-  const [filters, setFilters] = useState<FilterParams>({
-    minPrice: 0,
-    maxPrice: 50_000_000,
-    minArea: 0,
-    maxArea: 200,
-    minPricePerMeter: 0,
-    maxPricePerMeter: 1_000_000,
-    rooms: [],
-    regions: [],
-    direction: [],
-    finishing: [],
-    completionYear: null,
-    districts: [],
-    developers: [],
-    complexes: []
-  });
-
-  const resetFilters = () => {
-    setFilters({
-      minPrice: 0,
-      maxPrice: 50_000_000,
-      minArea: 0,
-      maxArea: 200,
-      minPricePerMeter: 0,
-      maxPricePerMeter: 1_000_000,
-      rooms: [],
-      regions: [],
-      direction: [],
-      finishing: [],
-      completionYear: null,
-      districts: [],
-      developers: [],
-      complexes: []
-    });
-  };
+  const { resetFilters } = usePropertyContext();
 
   return (
     <Router>
-      <ThemeToggle />
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
         <button
           onClick={toggleTheme}
@@ -108,8 +73,9 @@ const AppContent: React.FC = () => {
         </button>
       </div>
       <Routes>
-        <Route path="/" element={<HomePage filters={filters} setFilters={setFilters} />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/api" element={<ApiPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Router>
   );
@@ -118,7 +84,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <AppContent />
+      <PropertyProvider>
+        <AppContent />
+      </PropertyProvider>
     </ThemeProvider>
   );
 };

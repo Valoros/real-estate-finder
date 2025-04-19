@@ -1,13 +1,7 @@
 import React, { useMemo } from 'react';
 import { PropertyFilter } from '../components/PropertyFilter';
-import { FilterParams } from '../types/types';
-import { mockProperties } from '../data/mockProperties';
 import { Link } from 'react-router-dom';
-
-interface HomePageProps {
-  filters: FilterParams;
-  setFilters: (filters: FilterParams) => void;
-}
+import { usePropertyContext } from '../context/PropertyContext';
 
 interface ApartmentInfo {
   rooms: number;
@@ -24,9 +18,11 @@ interface ApartmentSummary {
   count: number;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ filters, setFilters }) => {
+export const HomePage: React.FC = () => {
+  const { properties, filters, updateFilters } = usePropertyContext();
+
   // Фильтрация объектов
-  const filteredProperties = mockProperties.filter(property => {
+  const filteredProperties = properties.filter(property => {
     // Фильтр по цене
     if (property.price < filters.minPrice || property.price > filters.maxPrice) {
       return false;
@@ -91,7 +87,7 @@ export const HomePage: React.FC<HomePageProps> = ({ filters, setFilters }) => {
     
     filteredProperties.forEach(property => {
       if (!grouped.has(property.title)) {
-        const allPropertiesInComplex = mockProperties.filter(p => p.title === property.title);
+        const allPropertiesInComplex = properties.filter(p => p.title === property.title);
         
         // Группируем квартиры по количеству комнат
         const apartmentsByRooms = new Map<number, ApartmentInfo[]>();
@@ -127,19 +123,27 @@ export const HomePage: React.FC<HomePageProps> = ({ filters, setFilters }) => {
     });
     
     return Array.from(grouped.values());
-  }, [filteredProperties]);
+  }, [filteredProperties, properties]);
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       <header className="bg-white dark:bg-neutral-900 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-light text-neutral-900 dark:text-neutral-100">GREENMEDIA</h1>
-          <Link 
-            to="/api" 
-            className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors"
-          >
-            API
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link 
+              to="/api" 
+              className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors"
+            >
+              API
+            </Link>
+            <Link 
+              to="/admin" 
+              className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors"
+            >
+              ADMIN
+            </Link>
+          </div>
         </div>
       </header>
       
@@ -149,7 +153,7 @@ export const HomePage: React.FC<HomePageProps> = ({ filters, setFilters }) => {
           <div className="w-full">
             <PropertyFilter
               filters={filters}
-              setFilters={setFilters}
+              setFilters={updateFilters}
             />
           </div>
 

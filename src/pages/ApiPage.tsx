@@ -12,9 +12,17 @@ const ApiPage: React.FC = () => {
           >
             GREENMEDIA
           </Link>
-          <span className="text-neutral-600 dark:text-neutral-400">
-            API
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-neutral-600 dark:text-neutral-400">
+              API
+            </span>
+            <Link 
+              to="/admin" 
+              className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors"
+            >
+              ADMIN
+            </Link>
+          </div>
         </div>
       </header>
 
