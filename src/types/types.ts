@@ -91,4 +91,5 @@ export interface FilterParams {
   completionYear: number | null;
   districts: string[];
   developers: string[];
+  complexes: string[];
 } 

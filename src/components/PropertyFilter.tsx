@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { FilterParams, Region, Direction, districts, finishingOptions } from '../types/types';
+import { FilterParams, Region, Direction, districts, finishingOptions, Finishing } from '../types/types';
 import { mockProperties } from '../data/mockProperties';
 
 // Приоритетные застройщики в нужном порядке
@@ -35,43 +35,24 @@ interface PropertyFilterProps {
 export const PropertyFilter: React.FC<PropertyFilterProps> = ({ filters, setFilters }) => {
   const [districtSearch, setDistrictSearch] = useState('');
   const [developerSearch, setDeveloperSearch] = useState('');
+  const [complexSearch, setComplexSearch] = useState('');
 
   // Получаем отфильтрованные объекты без учета застройщиков
   const filteredPropertiesWithoutDevelopers = useMemo(() => {
     return mockProperties.filter(property => {
-      if (property.price < filters.minPrice || property.price > filters.maxPrice) {
-        return false;
-      }
-      if (property.totalArea < filters.minArea || property.totalArea > filters.maxArea) {
-        return false;
-      }
-      if (property.pricePerMeter < filters.minPricePerMeter || property.pricePerMeter > filters.maxPricePerMeter) {
-        return false;
-      }
-      if (filters.rooms.length > 0 && !filters.rooms.includes(property.rooms)) {
-        return false;
-      }
-      if (filters.regions.length > 0 && !filters.regions.includes(property.region)) {
-        return false;
-      }
-      if (filters.direction.length > 0 && !filters.direction.includes(property.direction)) {
-        return false;
-      }
-      if (filters.finishing.length > 0 && !filters.finishing.includes(property.finishing)) {
-        return false;
-      }
-      if (filters.completionYear && property.yearBuilt !== filters.completionYear) {
-        return false;
-      }
-      if (filters.districts.length > 0 && !filters.districts.includes(property.district)) {
-        return false;
-      }
+      if (property.price < filters.minPrice || property.price > filters.maxPrice) return false;
+      if (property.totalArea < filters.minArea || property.totalArea > filters.maxArea) return false;
+      if (property.pricePerMeter < filters.minPricePerMeter || property.pricePerMeter > filters.maxPricePerMeter) return false;
+      if (filters.rooms.length > 0 && !filters.rooms.includes(property.rooms)) return false;
+      if (filters.regions.length > 0 && !filters.regions.includes(property.region)) return false;
+      if (filters.direction.length > 0 && !filters.direction.includes(property.direction)) return false;
+      if (filters.finishing.length > 0 && !filters.finishing.includes(property.finishing)) return false;
+      if (filters.completionYear && property.yearBuilt !== filters.completionYear) return false;
+      if (filters.districts.length > 0 && !filters.districts.includes(property.district)) return false;
+      if (filters.complexes.length > 0 && !filters.complexes.includes(property.title)) return false;
       return true;
     });
-  }, [filters.minPrice, filters.maxPrice, filters.minArea, filters.maxArea, 
-      filters.minPricePerMeter, filters.maxPricePerMeter, filters.rooms, 
-      filters.regions, filters.direction, filters.finishing, 
-      filters.completionYear, filters.districts]);
+  }, [filters, mockProperties]);
 
   const availableDistricts = useMemo(() => {
     // Получаем все уникальные районы из существующих ЖК
@@ -89,36 +70,50 @@ export const PropertyFilter: React.FC<PropertyFilterProps> = ({ filters, setFilt
   }, [filters.regions, districtSearch]);
 
   const availableDevelopers = useMemo(() => {
-    // Получаем уникальных застройщиков только из отфильтрованных объектов
     const developers = new Set(filteredPropertiesWithoutDevelopers.map(p => p.developer));
-    
-    // Преобразуем Set в массив и фильтруем по поисковому запросу
-    const filteredDevelopers = Array.from(developers)
+    return Array.from(developers)
       .filter(developer => 
         developer.toLowerCase().includes(developerSearch.toLowerCase())
-      );
-
-    // Сортируем с учетом приоритетных застройщиков
-    return filteredDevelopers.sort((a, b) => {
-      const aIndex = priorityDevelopers.indexOf(a);
-      const bIndex = priorityDevelopers.indexOf(b);
-      
-      // Если оба застройщика приоритетные
-      if (aIndex !== -1 && bIndex !== -1) {
-        return aIndex - bIndex;
-      }
-      // Если только первый застройщик приоритетный
-      if (aIndex !== -1) {
-        return -1;
-      }
-      // Если только второй застройщик приоритетный
-      if (bIndex !== -1) {
-        return 1;
-      }
-      // Если оба не приоритетные, сортируем по алфавиту
-      return a.localeCompare(b);
-    });
+      )
+      .sort((a, b) => a.localeCompare(b));
   }, [filteredPropertiesWithoutDevelopers, developerSearch]);
+
+  const availableComplexes = useMemo(() => {
+    const complexSet = new Set<string>();
+    
+    // Фильтруем properties без учета фильтра ЖК
+    const filteredWithoutComplex = mockProperties.filter(property => {
+      if (property.price < filters.minPrice || property.price > filters.maxPrice) return false;
+      if (property.totalArea < filters.minArea || property.totalArea > filters.maxArea) return false;
+      if (property.pricePerMeter < filters.minPricePerMeter || property.pricePerMeter > filters.maxPricePerMeter) return false;
+      if (filters.rooms.length > 0 && !filters.rooms.includes(property.rooms)) return false;
+      if (filters.regions.length > 0 && !filters.regions.includes(property.region)) return false;
+      if (filters.direction.length > 0 && !filters.direction.includes(property.direction)) return false;
+      if (filters.finishing.length > 0 && !filters.finishing.includes(property.finishing)) return false;
+      if (filters.completionYear && property.yearBuilt !== filters.completionYear) return false;
+      if (filters.districts.length > 0 && !filters.districts.includes(property.district)) return false;
+      if (filters.developers.length > 0 && !filters.developers.includes(property.developer)) return false;
+      return true;
+    });
+
+    filteredWithoutComplex.forEach(property => {
+      complexSet.add(property.title);
+    });
+
+    return Array.from(complexSet).sort();
+  }, [mockProperties, filters]);
+
+  const availableFinishing = useMemo(() => {
+    // Если выбран конкретный ЖК, показываем только доступные для него варианты отделки
+    if (filters.complexSearch) {
+      const complex = filteredPropertiesWithoutDevelopers.find(p => p.title === filters.complexSearch);
+      return complex ? finishingOptions.filter(option => option.id === complex.finishing) : [];
+    }
+    
+    // Иначе показываем все варианты отделки, доступные для отфильтрованных объектов
+    const finishingTypes = new Set(filteredPropertiesWithoutDevelopers.map(p => p.finishing));
+    return finishingOptions.filter(option => finishingTypes.has(option.id as Finishing));
+  }, [filteredPropertiesWithoutDevelopers, filters.complexSearch]);
 
   const handleRegionClick = (region: Region) => {
     const newRegions = filters.regions.includes(region)
@@ -163,40 +158,85 @@ export const PropertyFilter: React.FC<PropertyFilterProps> = ({ filters, setFilt
   };
 
   const handleDeveloperClick = (developer: string) => {
-    // Если застройщик уже выбран, убираем его из фильтров
-    if (filters.developers.includes(developer)) {
-      const newDevelopers = filters.developers.filter(d => d !== developer);
-      setFilters({ ...filters, developers: newDevelopers });
-      return;
-    }
-
-    // Если застройщик не выбран, добавляем его и очищаем тех, кто больше не доступен
-    const newDevelopers = [...filters.developers, developer].filter(
-      d => availableDevelopers.includes(d)
-    );
+    const newDevelopers = filters.developers.includes(developer)
+      ? filters.developers.filter(d => d !== developer)
+      : [...filters.developers, developer];
     setFilters({ ...filters, developers: newDevelopers });
+  };
+
+  // Обработчик выбора ЖК
+  const handleComplexClick = (complex: string) => {
+    const newComplexes = filters.complexes.includes(complex)
+      ? filters.complexes.filter(c => c !== complex)
+      : [...filters.complexes, complex];
+    setFilters({ ...filters, complexes: newComplexes });
   };
 
   return (
     <div className="w-full flex justify-center">
       <div className="w-[1200px] grid grid-cols-[280px_480px_280px] gap-6">
-        {/* Левая колонка - Отделка */}
-        <div className="space-y-2 p-4 h-fit bg-neutral-100 dark:bg-neutral-900 rounded-lg">
-          <div className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">Отделка</div>
-          <div className="flex flex-col gap-2">
-            {finishingOptions.map(option => (
-              <button
-                key={option.id}
-                onClick={() => handleFinishingClick(option.id)}
-                className={`px-4 py-2 text-sm transition-colors rounded text-left ${
-                  filters.finishing.includes(option.id as any)
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                }`}
-              >
-                {option.name}
-              </button>
-            ))}
+        {/* Левая колонка - ЖК и Отделка */}
+        <div className="space-y-6">
+          {/* Поиск по ЖК */}
+          <div className="p-4 bg-neutral-100 dark:bg-neutral-900 rounded-lg">
+            <div className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">Жилые комплексы</div>
+            <div className="relative">
+              <input
+                type="text"
+                value={complexSearch}
+                onChange={(e) => setComplexSearch(e.target.value)}
+                placeholder="Поиск ЖК..."
+                className="w-full px-3 py-2 mb-2 text-sm bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400"
+              />
+              {filters.complexSearch && (
+                <button
+                  onClick={() => {
+                    setComplexSearch('');
+                    setFilters({ ...filters, complexSearch: '' });
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-400 dark:scrollbar-thumb-neutral-600 scrollbar-track-neutral-200 dark:scrollbar-track-neutral-800">
+              {availableComplexes.map(complex => (
+                <button
+                  key={complex}
+                  onClick={() => handleComplexClick(complex)}
+                  className={`px-4 py-2 text-sm transition-colors rounded text-left ${
+                    filters.complexes.includes(complex)
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                  }`}
+                >
+                  {complex}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Отделка */}
+          <div className="p-4 bg-neutral-100 dark:bg-neutral-900 rounded-lg">
+            <div className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">Отделка</div>
+            <div className="flex flex-col gap-2">
+              {availableFinishing.map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => handleFinishingClick(option.id)}
+                  className={`px-4 py-2 text-sm transition-colors rounded text-left ${
+                    filters.finishing.includes(option.id as any)
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                  }`}
+                >
+                  {option.name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -308,13 +348,25 @@ export const PropertyFilter: React.FC<PropertyFilterProps> = ({ filters, setFilt
         {/* Правая колонка - Застройщики */}
         <div className="space-y-2 p-4 h-fit bg-neutral-100 dark:bg-neutral-900 rounded-lg">
           <div className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">Застройщик</div>
-          <input
-            type="text"
-            value={developerSearch}
-            onChange={(e) => setDeveloperSearch(e.target.value)}
-            placeholder="Поиск застройщика..."
-            className="w-full px-3 py-2 mb-2 text-sm bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={developerSearch}
+              onChange={(e) => setDeveloperSearch(e.target.value)}
+              placeholder="Поиск застройщика..."
+              className="w-full px-3 py-2 mb-2 text-sm bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400"
+            />
+            {filters.developers.length > 0 && (
+              <button
+                onClick={() => setFilters({ ...filters, developers: [] })}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+          </div>
           <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-400 dark:scrollbar-thumb-neutral-600 scrollbar-track-neutral-200 dark:scrollbar-track-neutral-800">
             {availableDevelopers.map(developer => (
               <button

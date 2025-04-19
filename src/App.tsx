@@ -11,35 +11,37 @@ const AppContent: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [filters, setFilters] = useState<FilterParams>({
     minPrice: 0,
-    maxPrice: Infinity,
+    maxPrice: 50_000_000,
     minArea: 0,
-    maxArea: Infinity,
+    maxArea: 200,
     minPricePerMeter: 0,
-    maxPricePerMeter: Infinity,
-    direction: [],
+    maxPricePerMeter: 1_000_000,
     rooms: [],
     regions: [],
-    districts: [],
+    direction: [],
     finishing: [],
     completionYear: null,
-    developers: []
+    districts: [],
+    developers: [],
+    complexes: []
   });
 
   const resetFilters = () => {
     setFilters({
       minPrice: 0,
-      maxPrice: Infinity,
+      maxPrice: 50_000_000,
       minArea: 0,
-      maxArea: Infinity,
+      maxArea: 200,
       minPricePerMeter: 0,
-      maxPricePerMeter: Infinity,
-      direction: [],
+      maxPricePerMeter: 1_000_000,
       rooms: [],
       regions: [],
-      districts: [],
+      direction: [],
       finishing: [],
       completionYear: null,
-      developers: []
+      districts: [],
+      developers: [],
+      complexes: []
     });
   };
 

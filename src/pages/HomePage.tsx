@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { PropertyFilter } from '../components/PropertyFilter';
 import { FilterParams } from '../types/types';
 import { mockProperties } from '../data/mockProperties';
@@ -7,6 +7,21 @@ import { Link } from 'react-router-dom';
 interface HomePageProps {
   filters: FilterParams;
   setFilters: (filters: FilterParams) => void;
+}
+
+interface ApartmentInfo {
+  rooms: number;
+  price: number;
+  area: number;
+}
+
+interface ApartmentSummary {
+  rooms: number;
+  minPrice: number;
+  maxPrice: number;
+  minArea: number;
+  maxArea: number;
+  count: number;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ filters, setFilters }) => {
@@ -62,8 +77,57 @@ export const HomePage: React.FC<HomePageProps> = ({ filters, setFilters }) => {
       return false;
     }
 
+    // Фильтр по ЖК
+    if (filters.complexes.length > 0 && !filters.complexes.includes(property.title)) {
+      return false;
+    }
+
     return true;
   });
+
+  // Группируем квартиры по ЖК с детальной информацией по типам квартир
+  const groupedProperties = useMemo(() => {
+    const grouped = new Map();
+    
+    filteredProperties.forEach(property => {
+      if (!grouped.has(property.title)) {
+        const allPropertiesInComplex = mockProperties.filter(p => p.title === property.title);
+        
+        // Группируем квартиры по количеству комнат
+        const apartmentsByRooms = new Map<number, ApartmentInfo[]>();
+        
+        allPropertiesInComplex.forEach(p => {
+          if (!apartmentsByRooms.has(p.rooms)) {
+            apartmentsByRooms.set(p.rooms, []);
+          }
+          apartmentsByRooms.get(p.rooms)?.push({
+            rooms: p.rooms,
+            price: p.price,
+            area: p.totalArea
+          });
+        });
+        
+        // Сортируем квартиры по количеству комнат
+        const sortedApartments = Array.from(apartmentsByRooms.entries())
+          .sort(([roomsA], [roomsB]) => roomsA - roomsB)
+          .map(([rooms, apartments]) => ({
+            rooms,
+            minPrice: Math.min(...apartments.map(a => a.price)),
+            maxPrice: Math.max(...apartments.map(a => a.price)),
+            minArea: Math.min(...apartments.map(a => a.area)),
+            maxArea: Math.max(...apartments.map(a => a.area)),
+            count: apartments.length
+          }));
+        
+        grouped.set(property.title, {
+          ...property,
+          apartments: sortedApartments
+        });
+      }
+    });
+    
+    return Array.from(grouped.values());
+  }, [filteredProperties]);
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
@@ -82,7 +146,7 @@ export const HomePage: React.FC<HomePageProps> = ({ filters, setFilters }) => {
       <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col items-center space-y-8">
           {/* Фильтры */}
-          <div className="w-full max-w-2xl">
+          <div className="w-full">
             <PropertyFilter
               filters={filters}
               setFilters={setFilters}
@@ -91,55 +155,105 @@ export const HomePage: React.FC<HomePageProps> = ({ filters, setFilters }) => {
 
           {/* Количество найденных объектов */}
           <div className="w-full text-center text-neutral-600 dark:text-neutral-400">
-            Найдено объектов: {filteredProperties.length}
+            Найдено ЖК: {groupedProperties.length}
           </div>
 
           {/* Список новостроек */}
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProperties.map(property => (
+          <div className="w-full flex flex-col gap-6">
+            {groupedProperties.map(complex => (
               <div 
-                key={property.id} 
-                className="bg-white dark:bg-neutral-900 rounded-lg shadow-md p-4"
+                key={complex.id} 
+                className="bg-white dark:bg-neutral-900 rounded-lg shadow-md p-6"
               >
-                <h2 className="text-xl font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
-                  {property.title}
-                </h2>
-                <p className="text-neutral-600 dark:text-neutral-400 mb-2">
-                  {property.description}
-                </p>
-                <div className="flex justify-between items-center mb-2">
-                  <div>
-                    <p className="text-lg font-bold text-teal-600 dark:text-teal-500">
-                      {property.price.toLocaleString()} ₽
+                <div className="flex gap-6">
+                  {/* Основная информация */}
+                  <div className="flex-1 border-r border-neutral-200 dark:border-neutral-700 pr-6">
+                    <h2 className="text-2xl font-semibold mb-3 text-neutral-900 dark:text-neutral-100">
+                      {complex.title}
+                    </h2>
+                    <p className="text-neutral-600 dark:text-neutral-400 mb-4 text-sm">
+                      {complex.description}
                     </p>
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                      {Math.round(property.pricePerMeter).toLocaleString()} ₽/м²
-                    </p>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-neutral-500 dark:text-neutral-400">
+                        {complex.address}
+                      </p>
+                      {complex.metro && (
+                        <p className="text-neutral-500 dark:text-neutral-400">
+                          М: {complex.metro}
+                        </p>
+                      )}
+                      <p className="text-neutral-500 dark:text-neutral-400">
+                        Сдача: {complex.yearBuilt}
+                      </p>
+                      <p className="text-neutral-500 dark:text-neutral-400">
+                        Отделка: {
+                          complex.finishing === 'none' ? 'Без отделки' :
+                          complex.finishing === 'rough' ? 'Черновая' :
+                          complex.finishing === 'fine' ? 'Чистовая' :
+                          'Под ключ'
+                        }
+                      </p>
+                      <p className="text-teal-600 dark:text-teal-500 font-medium">
+                        {complex.developer}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg text-neutral-900 dark:text-neutral-100">
-                      {property.totalArea} м²
-                    </p>
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                      {property.rooms} комн.
-                    </p>
+
+                  {/* Таблица с информацией о квартирах */}
+                  <div className="pl-0">
+                    <div className="grid grid-cols-[200px,1px,300px,1px,200px] h-full relative">
+                      {/* Вертикальные разделители на всю высоту */}
+                      <div className="absolute left-[200px] top-0 bottom-0 w-px bg-neutral-200 dark:bg-neutral-700" />
+                      <div className="absolute left-[501px] top-0 bottom-0 w-px bg-neutral-200 dark:bg-neutral-700" />
+
+                      {/* Контент */}
+                      <div className="py-4">
+                        {/* Заголовок */}
+                        <div className="text-sm font-medium text-neutral-500 dark:text-neutral-400 px-4 mb-4">
+                          Комнат
+                        </div>
+                        {/* Данные */}
+                        {complex.apartments.map((apt: ApartmentSummary) => (
+                          <div key={`${apt.rooms}-rooms`} className="px-4 text-neutral-900 dark:text-neutral-100 h-8 flex items-center">
+                            {apt.rooms}-комн
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Пустая колонка для разделителя */}
+                      <div />
+
+                      <div className="py-4">
+                        {/* Заголовок */}
+                        <div className="text-sm font-medium text-neutral-500 dark:text-neutral-400 px-4 mb-4">
+                          Стоимость
+                        </div>
+                        {/* Данные */}
+                        {complex.apartments.map((apt: ApartmentSummary) => (
+                          <div key={`${apt.rooms}-price`} className="px-4 text-neutral-900 dark:text-neutral-100 h-8 flex items-center">
+                            {apt.minPrice.toLocaleString()} - {apt.maxPrice.toLocaleString()} ₽
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Пустая колонка для разделителя */}
+                      <div />
+
+                      <div className="py-4">
+                        {/* Заголовок */}
+                        <div className="text-sm font-medium text-neutral-500 dark:text-neutral-400 px-4 mb-4">
+                          Площадь
+                        </div>
+                        {/* Данные */}
+                        {complex.apartments.map((apt: ApartmentSummary) => (
+                          <div key={`${apt.rooms}-area`} className="px-4 text-neutral-900 dark:text-neutral-100 h-8 flex items-center">
+                            {apt.minArea.toFixed(1)} - {apt.maxArea.toFixed(1)} м²
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                  <p>{property.address}</p>
-                  {property.metro && (
-                    <p>М: {property.metro}</p>
-                  )}
-                  <p>Сдача: {property.yearBuilt}</p>
-                  <p>Отделка: {
-                    property.finishing === 'none' ? 'Без отделки' :
-                    property.finishing === 'rough' ? 'Черновая' :
-                    property.finishing === 'fine' ? 'Чистовая' :
-                    'Под ключ'
-                  }</p>
-                  <p className="mt-2 text-teal-600 dark:text-teal-500 font-medium">
-                    {property.developer}
-                  </p>
                 </div>
               </div>
             ))}
